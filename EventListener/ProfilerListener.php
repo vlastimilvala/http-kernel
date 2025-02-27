@@ -108,6 +108,10 @@ class ProfilerListener implements EventSubscriberInterface
             if (!$profile = $this->profiler->collect($request, $event->getResponse(), $exception)) {
                 return;
             }
+
+			if ($profile->hasCollector('deprecations')) {
+				$profile->getCollector('deprecations')->reset();
+			}
         } finally {
             if ($session instanceof Session) {
                 $usageIndexReference = $usageIndexValue;
