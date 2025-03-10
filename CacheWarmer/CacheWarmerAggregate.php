@@ -51,40 +51,44 @@ class CacheWarmerAggregate implements CacheWarmerInterface
      */
     public function warmUp(string $cacheDir): array
     {
-        if ($collectDeprecations = $this->debug && !\defined('PHPUNIT_COMPOSER_INSTALL')) {
-            $collectedLogs = [];
-            $previousHandler = set_error_handler(function ($type, $message, $file, $line) use (&$collectedLogs, &$previousHandler) {
-                if (\E_USER_DEPRECATED !== $type && \E_DEPRECATED !== $type) {
-                    return $previousHandler ? $previousHandler($type, $message, $file, $line) : false;
-                }
+		if (getenv('DEV_PROFILER_DEPRECATIONS') === 'true') {
+			if ($collectDeprecations = $this->debug && !\defined('PHPUNIT_COMPOSER_INSTALL')) {
+				$collectedLogs = [];
+				$previousHandler = set_error_handler(function ($type, $message, $file, $line) use (&$collectedLogs, &$previousHandler) {
+					if (\E_USER_DEPRECATED !== $type && \E_DEPRECATED !== $type) {
+						return $previousHandler ? $previousHandler($type, $message, $file, $line) : false;
+					}
 
-                if (isset($collectedLogs[$message])) {
-                    ++$collectedLogs[$message]['count'];
+					if (isset($collectedLogs[$message])) {
+						++$collectedLogs[$message]['count'];
 
-                    return null;
-                }
+						return null;
+					}
 
-                $backtrace = debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 3);
-                // Clean the trace by removing first frames added by the error handler itself.
-                for ($i = 0; isset($backtrace[$i]); ++$i) {
-                    if (isset($backtrace[$i]['file'], $backtrace[$i]['line']) && $backtrace[$i]['line'] === $line && $backtrace[$i]['file'] === $file) {
-                        $backtrace = \array_slice($backtrace, 1 + $i);
-                        break;
-                    }
-                }
+					$backtrace = debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+					// Clean the trace by removing first frames added by the error handler itself.
+					for ($i = 0; isset($backtrace[$i]); ++$i) {
+						if (isset($backtrace[$i]['file'], $backtrace[$i]['line']) && $backtrace[$i]['line'] === $line && $backtrace[$i]['file'] === $file) {
+							$backtrace = \array_slice($backtrace, 1 + $i);
+							break;
+						}
+					}
 
-                $collectedLogs[$message] = [
-                    'type' => $type,
-                    'message' => $message,
-                    'file' => $file,
-                    'line' => $line,
-                    'trace' => $backtrace,
-                    'count' => 1,
-                ];
+					$collectedLogs[$message] = [
+						'type' => $type,
+						'message' => $message,
+						'file' => $file,
+						'line' => $line,
+						'trace' => $backtrace,
+						'count' => 1,
+					];
 
-                return null;
-            });
-        }
+					return null;
+				});
+			}
+		} else {
+			$collectDeprecations = false;
+		}
 
         $preload = [];
         try {

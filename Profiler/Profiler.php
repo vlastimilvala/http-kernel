@@ -157,8 +157,12 @@ class Profiler implements ResetInterface
 
         $response->headers->set('X-Debug-Token', $profile->getToken());
 
-        foreach ($this->collectors as $collector) {
-            $collector->collect($request, $response, $exception);
+        foreach ($this->collectors as $collectorName => $collector) {
+			if ($collectorName === 'vich_uploader.mapping_collector') {
+				continue;
+			}
+
+			$collector->collect($request, $response, $exception);
 
             // we need to clone for sub-requests
             $profile->addCollector(clone $collector);
